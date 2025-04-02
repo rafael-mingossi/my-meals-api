@@ -1,8 +1,8 @@
-// app/Models/Food.ts
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo, BelongsTo } from '@ioc:Adonis/Lucid/Orm'
+import {BaseModel, column, belongsTo, BelongsTo, HasMany, hasMany} from '@ioc:Adonis/Lucid/Orm'
 import Profile from './Profile'
 import FoodCategory from './FoodCategory'
+import RecipeItem from './RecipeItem'
 
 export default class Food extends BaseModel {
   @column({ isPrimary: true })
@@ -62,4 +62,9 @@ export default class Food extends BaseModel {
     foreignKey: 'category_id',
   })
   public category: BelongsTo<typeof FoodCategory>
+
+  @hasMany(() => RecipeItem, {
+    foreignKey: 'food_id',
+  })
+  public recipeItems: HasMany<typeof RecipeItem>
 }

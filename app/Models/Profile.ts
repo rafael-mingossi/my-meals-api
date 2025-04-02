@@ -3,6 +3,7 @@ import Hash from '@ioc:Adonis/Core/Hash'
 import { BaseModel, column, beforeSave, hasMany, HasMany } from '@ioc:Adonis/Lucid/Orm'
 import JwtToken from './JwtToken'
 import Food from "App/Models/Food";
+import Recipe from './Recipe';
 
 export default class Profile extends BaseModel {
   public static table = 'profiles'
@@ -77,6 +78,11 @@ export default class Profile extends BaseModel {
     foreignKey: 'user_id',
   })
   public foods: HasMany<typeof Food>
+
+  @hasMany(() => Recipe, {
+    foreignKey: 'user_id',
+  })
+  public recipes: HasMany<typeof Recipe>
 
   @beforeSave()
   public static async hashPassword(profile: Profile) {

@@ -1,4 +1,3 @@
-// start/routes.ts
 import Route from '@ioc:Adonis/Core/Route'
 
 Route.get('/', async () => {
@@ -8,6 +7,7 @@ Route.get('/', async () => {
 // Import routes
 import 'App/Routes/AuthRoutes'
 import 'App/Routes/FoodRoutes'
+import 'App/Routes/RecipeRoutes'
 
 // import Database from '@ioc:Adonis/Lucid/Database'
 // import Route from '@ioc:Adonis/Core/Route'
