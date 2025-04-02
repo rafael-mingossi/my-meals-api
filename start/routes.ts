@@ -5,8 +5,9 @@ Route.get('/', async () => {
   return { hello: 'world' }
 })
 
-// Import auth routes
+// Import routes
 import 'App/Routes/AuthRoutes'
+import 'App/Routes/FoodRoutes'
 
 // import Database from '@ioc:Adonis/Lucid/Database'
 // import Route from '@ioc:Adonis/Core/Route'

@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import Hash from '@ioc:Adonis/Core/Hash'
 import { BaseModel, column, beforeSave, hasMany, HasMany } from '@ioc:Adonis/Lucid/Orm'
 import JwtToken from './JwtToken'
+import Food from "App/Models/Food";
 
 export default class Profile extends BaseModel {
   public static table = 'profiles'
@@ -71,6 +72,11 @@ export default class Profile extends BaseModel {
     foreignKey: 'userId',
   })
   public tokens: HasMany<typeof JwtToken>
+
+  @hasMany(() => Food, {
+    foreignKey: 'user_id',
+  })
+  public foods: HasMany<typeof Food>
 
   @beforeSave()
   public static async hashPassword(profile: Profile) {
