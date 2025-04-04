@@ -2,6 +2,7 @@ import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Food from 'App/Models/Food'
 import { StoreFoodSchema, UpdateFoodSchema } from 'App/Validators/FoodValidator'
 import { IFood } from 'App/Interfaces/IFood'
+import FoodsRepository from "App/Repositories/FoodsRepository";
 
 export default class FoodController {
   /**
@@ -10,23 +11,13 @@ export default class FoodController {
    */
   public async index({ auth, request, response }: HttpContextContract) {
     try {
-      const user = auth.user
       const { includeArchived = false, categoryId } = request.qs()
 
-      const query = Food.query()
-        .where('user_id', user?.id as string)
-
-      // Filter by archived status if not explicitly including archived
-      if (!includeArchived) {
-        query.where('is_archived', false)
-      }
-
-      // Filter by category if provided
-      if (categoryId) {
-        query.where('category_id', categoryId)
-      }
-
-      const foods = await query.orderBy('label', 'asc')
+      const foodsRepository = new FoodsRepository()
+      const foods = await foodsRepository.getUserFoods(auth.user!.id, {
+        includeArchived: includeArchived,
+        categoryId: categoryId
+      })
 
       return response.json(foods)
     } catch (error) {
@@ -67,26 +58,10 @@ export default class FoodController {
    */
   public async store({ request, auth, response }: HttpContextContract) {
     try {
-      // Validate request using the schema and get typed DTO
       const foodDto: IFood.DTOs.Store = await request.validate({ schema: StoreFoodSchema })
 
-      // Create new food
-      const food = new Food()
-      food.user_id = auth.user!.id
-      food.label = foodDto.label
-      food.category_id = foodDto.category_id
-      food.protein = foodDto.protein
-      food.carbs = foodDto.carbs
-      food.fat = foodDto.fat
-      food.calories = foodDto.calories
-      food.fibre = foodDto.fibre || null
-      food.sodium = foodDto.sodium || null
-      food.serv_size = foodDto.serv_size
-      food.serv_unit = foodDto.serv_unit
-      food.food_img = foodDto.food_img || null
-      food.is_archived = false
-
-      await food.save()
+      const foodsRepository = new FoodsRepository()
+      const food = await foodsRepository.store(foodDto, auth.user!.id)
 
       return response.status(201).json(food)
     } catch (error) {

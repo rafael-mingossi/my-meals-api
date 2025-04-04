@@ -6,6 +6,7 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import { StoreRecipeSchema, UpdateRecipeSchema } from 'App/Validators/RecipeValidator'
 import { IRecipe } from 'App/Interfaces/IRecipe'
 import { RecipeUtils } from 'App/Utils/RecipeUtils'
+import RecipesRepository from "App/Repositories/RecipesRepository";
 
 export default class RecipeController {
   /**
@@ -146,86 +147,23 @@ export default class RecipeController {
    */
   public async update({ params, request, auth, response }: HttpContextContract) {
     try {
-      // Find the recipe
-      const recipe = await Recipe.query()
-        .where('id', params.id)
-        .where('user_id', auth.user?.id as string)
-        .preload('items')
-        .first()
-
-      if (!recipe) {
-        return response.status(404).json({
-          message: 'Recipe not found'
-        })
-      }
-
-      // Validate request using the schema and get typed DTO
       const recipeDto: IRecipe.DTOs.Update = await request.validate({
         schema: UpdateRecipeSchema
       })
 
-      // Use transaction for atomicity
-      const result = await Database.transaction(async (trx) => {
-        // Update recipe basic info (only the fields that are provided)
-        if (recipeDto.name !== undefined) recipe.name = recipeDto.name
-        if (recipeDto.serving !== undefined) recipe.serving = recipeDto.serving
-        if (recipeDto.serv_unit !== undefined) recipe.serv_unit = recipeDto.serv_unit
-        if (recipeDto.img !== undefined) recipe.img = recipeDto.img
+      const recipesRepository = new RecipesRepository()
 
-        recipe.useTransaction(trx)
+      // Find the recipe
+      const recipe = await recipesRepository.findById(params.id, auth.user!.id)
 
-        // If items are provided, update them
-        if (recipeDto.items) {
-          // Delete existing items
-          await RecipeItem.query({ client: trx })
-            .where('recipe_id', recipe.id)
-            .delete()
+      if (!recipe) {
+        return response.status(404).json({ message: 'Recipe not found' })
+      }
 
-          // Get all foods needed for the calculation
-          const foodIds = recipeDto.items.map(item => item.food_id)
-          const foods = await Food.query({ client: trx })
-            .whereIn('id', foodIds)
+      // Update through repository
+      const updatedRecipe = await recipesRepository.update(recipe, recipeDto)
 
-          // Calculate nutrition totals using the utility function
-          const nutritionTotals = RecipeUtils.calculateNutritionTotals(
-            foods,
-            recipeDto.items
-          )
-
-          // Update recipe with new nutritional values
-          recipe.t_calories = nutritionTotals.calories
-          recipe.t_carbs = nutritionTotals.carbs
-          recipe.t_fat = nutritionTotals.fat
-          recipe.t_protein = nutritionTotals.protein
-          recipe.t_fibre = nutritionTotals.fibre
-          recipe.t_sodium = nutritionTotals.sodium
-
-          // Create recipe items
-          await Promise.all(
-            recipeDto.items.map(async (item) => {
-              const recipeItem = new RecipeItem()
-              recipeItem.useTransaction(trx)
-              recipeItem.recipe_id = recipe.id
-              recipeItem.food_id = item.food_id
-              recipeItem.quantity = item.quantity
-              await recipeItem.save()
-              return recipeItem
-            })
-          )
-        }
-
-        // Save the updated recipe
-        await recipe.save()
-
-        return recipe
-      })
-
-      // Reload the recipe with items and their foods for a complete response
-      await result.load('items', (query) => {
-        query.preload('food')
-      })
-
-      return response.json(result)
+      return response.json(updatedRecipe)
     } catch (error) {
       if (error.messages) {
         return response.status(422).json(error.messages)
@@ -243,25 +181,21 @@ export default class RecipeController {
    */
   public async archive({ params, auth, response }: HttpContextContract) {
     try {
+      const recipesRepository = new RecipesRepository()
+
       // Find the recipe
-      const recipe = await Recipe.query()
-        .where('id', params.id)
-        .where('user_id', auth.user?.id as string)
-        .first()
+      const recipe = await recipesRepository.findById(params.id, auth.user!.id)
 
       if (!recipe) {
-        return response.status(404).json({
-          message: 'Recipe not found'
-        })
+        return response.status(404).json({ message: 'Recipe not found' })
       }
 
-      // Set is_archived to true
-      recipe.is_archived = true
-      await recipe.save()
+      // Archive through repository
+      const archivedRecipe = await recipesRepository.updateArchiveStatus(recipe, true)
 
       return response.json({
         message: 'Recipe archived successfully',
-        recipe
+        recipe: archivedRecipe
       })
     } catch (error) {
       return response.status(500).json({
