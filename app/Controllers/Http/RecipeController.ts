@@ -3,7 +3,9 @@ import Recipe from 'App/Models/Recipe'
 import RecipeItem from 'App/Models/RecipeItem'
 import Food from 'App/Models/Food'
 import Database from '@ioc:Adonis/Lucid/Database'
-import { schema, rules } from '@ioc:Adonis/Core/Validator'
+import { StoreRecipeSchema, UpdateRecipeSchema } from 'App/Validators/RecipeValidator'
+import { IRecipe } from 'App/Interfaces/IRecipe'
+import { RecipeUtils } from 'App/Utils/RecipeUtils'
 
 export default class RecipeController {
   /**
@@ -68,74 +70,46 @@ export default class RecipeController {
    * Create a new recipe with items
    */
   public async store({ request, auth, response }: HttpContextContract) {
-    // Validate request
-    const recipeSchema = schema.create({
-      name: schema.string({ trim: true }, [rules.maxLength(255)]),
-      serving: schema.number.optional(),
-      serv_unit: schema.string.optional({ trim: true }),
-      img: schema.string.optional({ trim: true }),
-      items: schema.array().members(
-        schema.object().members({
-          food_id: schema.number([
-            rules.exists({ table: 'foods', column: 'id' })
-          ]),
-          quantity: schema.number([rules.unsigned()])
-        })
-      )
-    })
-
     try {
-      const payload = await request.validate({ schema: recipeSchema })
+      // Validate request using the schema and get typed DTO
+      const recipeDto: IRecipe.DTOs.Store = await request.validate({
+        schema: StoreRecipeSchema
+      })
 
       // Use transaction to ensure all operations succeed or fail together
       const result = await Database.transaction(async (trx) => {
         // First, fetch all foods to calculate nutrition totals
-        const foodIds = payload.items.map(item => item.food_id)
+        const foodIds = recipeDto.items.map(item => item.food_id)
         const foods = await Food.query({ client: trx })
           .whereIn('id', foodIds)
 
-        // Calculate nutrition totals
-        let t_calories = 0
-        let t_carbs = 0
-        let t_fat = 0
-        let t_protein = 0
-        let t_fibre = 0
-        let t_sodium = 0
-
-        payload.items.forEach(item => {
-          const food = foods.find(f => f.id === item.food_id)
-          if (food) {
-            const factor = item.quantity / food.serv_size
-            t_calories += food.calories * factor
-            t_carbs += food.carbs * factor
-            t_fat += food.fat * factor
-            t_protein += food.protein * factor
-            t_fibre += (food.fibre || 0) * factor
-            t_sodium += (food.sodium || 0) * factor
-          }
-        })
+        // Calculate nutrition totals using the utility function
+        const nutritionTotals = RecipeUtils.calculateNutritionTotals(
+          foods,
+          recipeDto.items
+        )
 
         // Create recipe
         const recipe = new Recipe()
         recipe.useTransaction(trx)
         recipe.user_id = auth.user!.id
-        recipe.name = payload.name
-        recipe.t_calories = parseFloat(t_calories.toFixed(2))
-        recipe.t_carbs = parseFloat(t_carbs.toFixed(2))
-        recipe.t_fat = parseFloat(t_fat.toFixed(2))
-        recipe.t_protein = parseFloat(t_protein.toFixed(2))
-        recipe.t_fibre = parseFloat(t_fibre.toFixed(2))
-        recipe.t_sodium = parseFloat(t_sodium.toFixed(2))
-        recipe.serving = payload.serving || null
-        recipe.serv_unit = payload.serv_unit || null
-        recipe.img = payload.img || null
+        recipe.name = recipeDto.name
+        recipe.t_calories = nutritionTotals.calories
+        recipe.t_carbs = nutritionTotals.carbs
+        recipe.t_fat = nutritionTotals.fat
+        recipe.t_protein = nutritionTotals.protein
+        recipe.t_fibre = nutritionTotals.fibre
+        recipe.t_sodium = nutritionTotals.sodium
+        recipe.serving = recipeDto.serving || null
+        recipe.serv_unit = recipeDto.serv_unit || null
+        recipe.img = recipeDto.img || null
         recipe.is_archived = false
 
         await recipe.save()
 
         // Create recipe items
         const recipeItems = await Promise.all(
-          payload.items.map(async (item) => {
+          recipeDto.items.map(async (item) => {
             const recipeItem = new RecipeItem()
             recipeItem.useTransaction(trx)
             recipeItem.recipe_id = recipe.id
@@ -175,7 +149,7 @@ export default class RecipeController {
       // Find the recipe
       const recipe = await Recipe.query()
         .where('id', params.id)
-        .where('user_id', auth.user?.id  as string)
+        .where('user_id', auth.user?.id as string)
         .preload('items')
         .first()
 
@@ -185,50 +159,50 @@ export default class RecipeController {
         })
       }
 
-      // Validate request
-      const recipeSchema = schema.create({
-        name: schema.string.optional({ trim: true }, [rules.maxLength(255)]),
-        serving: schema.number.optional(),
-        serv_unit: schema.string.optional({ trim: true }),
-        img: schema.string.optional({ trim: true }),
-        items: schema.array.optional().members(
-          schema.object().members({
-            id: schema.number.optional(),
-            food_id: schema.number([
-              rules.exists({ table: 'foods', column: 'id' })
-            ]),
-            quantity: schema.number([rules.unsigned()])
-          })
-        )
+      // Validate request using the schema and get typed DTO
+      const recipeDto: IRecipe.DTOs.Update = await request.validate({
+        schema: UpdateRecipeSchema
       })
-
-      const payload = await request.validate({ schema: recipeSchema })
 
       // Use transaction for atomicity
       const result = await Database.transaction(async (trx) => {
-        // Update recipe basic info
-        if (payload.name) recipe.name = payload.name
-        if (payload.serving !== undefined) recipe.serving = payload.serving
-        if (payload.serv_unit !== undefined) recipe.serv_unit = payload.serv_unit
-        if (payload.img !== undefined) recipe.img = payload.img
+        // Update recipe basic info (only the fields that are provided)
+        if (recipeDto.name !== undefined) recipe.name = recipeDto.name
+        if (recipeDto.serving !== undefined) recipe.serving = recipeDto.serving
+        if (recipeDto.serv_unit !== undefined) recipe.serv_unit = recipeDto.serv_unit
+        if (recipeDto.img !== undefined) recipe.img = recipeDto.img
 
         recipe.useTransaction(trx)
 
         // If items are provided, update them
-        if (payload.items) {
+        if (recipeDto.items) {
           // Delete existing items
           await RecipeItem.query({ client: trx })
             .where('recipe_id', recipe.id)
             .delete()
 
-          // Create new items
-          const foodIds = payload.items.map(item => item.food_id)
+          // Get all foods needed for the calculation
+          const foodIds = recipeDto.items.map(item => item.food_id)
           const foods = await Food.query({ client: trx })
             .whereIn('id', foodIds)
 
+          // Calculate nutrition totals using the utility function
+          const nutritionTotals = RecipeUtils.calculateNutritionTotals(
+            foods,
+            recipeDto.items
+          )
+
+          // Update recipe with new nutritional values
+          recipe.t_calories = nutritionTotals.calories
+          recipe.t_carbs = nutritionTotals.carbs
+          recipe.t_fat = nutritionTotals.fat
+          recipe.t_protein = nutritionTotals.protein
+          recipe.t_fibre = nutritionTotals.fibre
+          recipe.t_sodium = nutritionTotals.sodium
+
           // Create recipe items
           await Promise.all(
-            payload.items.map(async (item) => {
+            recipeDto.items.map(async (item) => {
               const recipeItem = new RecipeItem()
               recipeItem.useTransaction(trx)
               recipeItem.recipe_id = recipe.id
@@ -238,42 +212,15 @@ export default class RecipeController {
               return recipeItem
             })
           )
-
-          // Recalculate nutrition totals
-          let t_calories = 0
-          let t_carbs = 0
-          let t_fat = 0
-          let t_protein = 0
-          let t_fibre = 0
-          let t_sodium = 0
-
-          payload.items.forEach(item => {
-            const food = foods.find(f => f.id === item.food_id)
-            if (food) {
-              const factor = item.quantity / food.serv_size
-              t_calories += food.calories * factor
-              t_carbs += food.carbs * factor
-              t_fat += food.fat * factor
-              t_protein += food.protein * factor
-              t_fibre += (food.fibre || 0) * factor
-              t_sodium += (food.sodium || 0) * factor
-            }
-          })
-
-          recipe.t_calories = parseFloat(t_calories.toFixed(2))
-          recipe.t_carbs = parseFloat(t_carbs.toFixed(2))
-          recipe.t_fat = parseFloat(t_fat.toFixed(2))
-          recipe.t_protein = parseFloat(t_protein.toFixed(2))
-          recipe.t_fibre = parseFloat(t_fibre.toFixed(2))
-          recipe.t_sodium = parseFloat(t_sodium.toFixed(2))
         }
 
+        // Save the updated recipe
         await recipe.save()
 
         return recipe
       })
 
-      // Reload the recipe with items
+      // Reload the recipe with items and their foods for a complete response
       await result.load('items', (query) => {
         query.preload('food')
       })

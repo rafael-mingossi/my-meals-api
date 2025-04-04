@@ -1,7 +1,7 @@
-// app/Controllers/Http/FoodController.ts
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Food from 'App/Models/Food'
-import { schema, rules } from '@ioc:Adonis/Core/Validator'
+import { StoreFoodSchema, UpdateFoodSchema } from 'App/Validators/FoodValidator'
+import { IFood } from 'App/Interfaces/IFood'
 
 export default class FoodController {
   /**
@@ -66,40 +66,24 @@ export default class FoodController {
    * Create a new food
    */
   public async store({ request, auth, response }: HttpContextContract) {
-    // Validate request
-    const foodSchema = schema.create({
-      label: schema.string({ trim: true }, [rules.maxLength(255)]),
-      category_id: schema.number([
-        rules.exists({ table: 'food_categories', column: 'id' })
-      ]),
-      protein: schema.number(),
-      carbs: schema.number(),
-      fat: schema.number(),
-      calories: schema.number(),
-      fibre: schema.number.optional(),
-      sodium: schema.number.optional(),
-      serv_size: schema.number(),
-      serv_unit: schema.string({ trim: true }),
-      food_img: schema.string.optional({ trim: true })
-    })
-
     try {
-      const payload = await request.validate({ schema: foodSchema })
+      // Validate request using the schema and get typed DTO
+      const foodDto: IFood.DTOs.Store = await request.validate({ schema: StoreFoodSchema })
 
       // Create new food
       const food = new Food()
       food.user_id = auth.user!.id
-      food.label = payload.label
-      food.category_id = payload.category_id
-      food.protein = payload.protein
-      food.carbs = payload.carbs
-      food.fat = payload.fat
-      food.calories = payload.calories
-      food.fibre = payload.fibre || null
-      food.sodium = payload.sodium || null
-      food.serv_size = payload.serv_size
-      food.serv_unit = payload.serv_unit
-      food.food_img = payload.food_img || null
+      food.label = foodDto.label
+      food.category_id = foodDto.category_id
+      food.protein = foodDto.protein
+      food.carbs = foodDto.carbs
+      food.fat = foodDto.fat
+      food.calories = foodDto.calories
+      food.fibre = foodDto.fibre || null
+      food.sodium = foodDto.sodium || null
+      food.serv_size = foodDto.serv_size
+      food.serv_unit = foodDto.serv_unit
+      food.food_img = foodDto.food_img || null
       food.is_archived = false
 
       await food.save()
@@ -134,27 +118,11 @@ export default class FoodController {
         })
       }
 
-      // Validate request
-      const foodSchema = schema.create({
-        label: schema.string.optional({ trim: true }, [rules.maxLength(255)]),
-        category_id: schema.number.optional([
-          rules.exists({ table: 'food_categories', column: 'id' })
-        ]),
-        protein: schema.number.optional(),
-        carbs: schema.number.optional(),
-        fat: schema.number.optional(),
-        calories: schema.number.optional(),
-        fibre: schema.number.optional(),
-        sodium: schema.number.optional(),
-        serv_size: schema.number.optional(),
-        serv_unit: schema.string.optional({ trim: true }),
-        food_img: schema.string.optional({ trim: true })
-      })
-
-      const payload = await request.validate({ schema: foodSchema })
+      // Validate request using the schema and get typed DTO
+      const foodDto: IFood.DTOs.Update = await request.validate({ schema: UpdateFoodSchema })
 
       // Update food with new values
-      food.merge(payload)
+      food.merge(foodDto)
       await food.save()
 
       return response.json(food)
