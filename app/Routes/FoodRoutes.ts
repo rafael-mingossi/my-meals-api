@@ -1,4 +1,3 @@
-// app/Routes/FoodRoutes.ts
 import Route from '@ioc:Adonis/Core/Route'
 
 Route.group(() => {

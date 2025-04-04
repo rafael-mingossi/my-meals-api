@@ -3,6 +3,7 @@ import {BaseModel, column, belongsTo, BelongsTo, HasMany, hasMany} from '@ioc:Ad
 import Profile from './Profile'
 import FoodCategory from './FoodCategory'
 import RecipeItem from './RecipeItem'
+import MealItem from './MealItem'
 
 export default class Food extends BaseModel {
   @column({ isPrimary: true })
@@ -67,4 +68,9 @@ export default class Food extends BaseModel {
     foreignKey: 'food_id',
   })
   public recipeItems: HasMany<typeof RecipeItem>
+
+  @hasMany(() => MealItem, {
+    foreignKey: 'food_id',
+  })
+  public mealItems: HasMany<typeof MealItem>
 }

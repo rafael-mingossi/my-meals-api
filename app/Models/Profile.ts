@@ -4,6 +4,7 @@ import { BaseModel, column, beforeSave, hasMany, HasMany } from '@ioc:Adonis/Luc
 import JwtToken from './JwtToken'
 import Food from "App/Models/Food";
 import Recipe from './Recipe';
+import Meal from './Meal';
 
 export default class Profile extends BaseModel {
   public static table = 'profiles'
@@ -83,6 +84,11 @@ export default class Profile extends BaseModel {
     foreignKey: 'user_id',
   })
   public recipes: HasMany<typeof Recipe>
+
+  @hasMany(() => Meal, {
+    foreignKey: 'user_id',
+  })
+  public meals: HasMany<typeof Meal>
 
   @beforeSave()
   public static async hashPassword(profile: Profile) {

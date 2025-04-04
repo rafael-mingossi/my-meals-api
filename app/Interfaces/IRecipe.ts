@@ -1,4 +1,3 @@
-// app/Interfaces/IRecipe.ts
 export namespace IRecipe {
   export namespace DTOs {
     export interface RecipeItem {

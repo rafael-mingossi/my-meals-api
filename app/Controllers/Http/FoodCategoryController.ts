@@ -1,4 +1,3 @@
-// app/Controllers/Http/FoodCategoryController.ts
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import FoodCategory from 'App/Models/FoodCategory'
 

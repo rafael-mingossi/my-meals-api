@@ -1,10 +1,9 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, BelongsTo, hasMany, HasMany } from '@ioc:Adonis/Lucid/Orm'
 import Profile from './Profile'
-import RecipeItem from './RecipeItem'
 import MealItem from './MealItem'
 
-export default class Recipe extends BaseModel {
+export default class Meal extends BaseModel {
   @column({ isPrimary: true })
   public id: number
 
@@ -12,7 +11,10 @@ export default class Recipe extends BaseModel {
   public user_id: string
 
   @column()
-  public name: string
+  public meal_type: string
+
+  @column.date()
+  public date_added: DateTime
 
   @column()
   public t_calories: number
@@ -32,18 +34,6 @@ export default class Recipe extends BaseModel {
   @column()
   public t_sodium: number
 
-  @column()
-  public serving: number | null
-
-  @column()
-  public serv_unit: string | null
-
-  @column()
-  public img: string | null
-
-  @column()
-  public is_archived: boolean
-
   @column.dateTime({ autoCreate: true })
   public created_at: DateTime
 
@@ -55,13 +45,8 @@ export default class Recipe extends BaseModel {
   })
   public user: BelongsTo<typeof Profile>
 
-  @hasMany(() => RecipeItem, {
-    foreignKey: 'recipe_id',
-  })
-  public items: HasMany<typeof RecipeItem>
-
   @hasMany(() => MealItem, {
-    foreignKey: 'recipe_id',
+    foreignKey: 'meal_id',
   })
-  public mealItems: HasMany<typeof MealItem>
+  public items: HasMany<typeof MealItem>
 }

@@ -8,6 +8,7 @@ Route.get('/', async () => {
 import 'App/Routes/AuthRoutes'
 import 'App/Routes/FoodRoutes'
 import 'App/Routes/RecipeRoutes'
+import 'App/Routes/MealRoutes'
 
 // import Database from '@ioc:Adonis/Lucid/Database'
 // import Route from '@ioc:Adonis/Core/Route'
