@@ -3,6 +3,7 @@ import { BaseModel, column, belongsTo, BelongsTo, hasMany, HasMany } from '@ioc:
 import Profile from './Profile'
 import RecipeItem from './RecipeItem'
 import MealItem from './MealItem'
+import UserFavourite from './UserFavourite'
 
 export default class Recipe extends BaseModel {
   @column({ isPrimary: true })
@@ -64,4 +65,9 @@ export default class Recipe extends BaseModel {
     foreignKey: 'recipe_id',
   })
   public mealItems: HasMany<typeof MealItem>
+
+  @hasMany(() => UserFavourite, {
+    foreignKey: 'recipe_id',
+  })
+  public userFavourites: HasMany<typeof UserFavourite>
 }

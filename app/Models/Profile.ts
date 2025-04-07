@@ -5,6 +5,7 @@ import JwtToken from './JwtToken'
 import Food from "App/Models/Food";
 import Recipe from './Recipe';
 import Meal from './Meal';
+import UserFavourite from './UserFavourite';
 
 export default class Profile extends BaseModel {
   public static table = 'profiles'
@@ -89,6 +90,11 @@ export default class Profile extends BaseModel {
     foreignKey: 'user_id',
   })
   public meals: HasMany<typeof Meal>
+
+  @hasMany(() => UserFavourite, {
+    foreignKey: 'user_id',
+  })
+  public favorites: HasMany<typeof UserFavourite>
 
   @beforeSave()
   public static async hashPassword(profile: Profile) {

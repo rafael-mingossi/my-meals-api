@@ -1,4 +1,3 @@
-// database/migrations/xxxx_foods.ts
 import BaseSchema from '@ioc:Adonis/Lucid/Schema'
 
 export default class Foods extends BaseSchema {

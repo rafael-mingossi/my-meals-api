@@ -4,6 +4,7 @@ import Profile from './Profile'
 import FoodCategory from './FoodCategory'
 import RecipeItem from './RecipeItem'
 import MealItem from './MealItem'
+import UserFavourite from './UserFavourite'
 
 export default class Food extends BaseModel {
   @column({ isPrimary: true })
@@ -73,4 +74,9 @@ export default class Food extends BaseModel {
     foreignKey: 'food_id',
   })
   public mealItems: HasMany<typeof MealItem>
+
+  @hasMany(() => UserFavourite, {
+    foreignKey: 'food_id',
+  })
+  public userFavourites: HasMany<typeof UserFavourite>
 }
