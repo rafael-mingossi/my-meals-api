@@ -45,7 +45,7 @@ export default class AuthController {
     }
   }
 
-  // Replace the login method in your AuthController with this one:
+  // LOGIN TEST:
   // public async login({ request, auth, response }: HttpContextContract): Promise<void> {
   //   try {
   //     const { email, password, rememberMe = true } = request.only(['email', 'password', 'rememberMe'])
@@ -317,7 +317,12 @@ export default class AuthController {
   }
 
   /**
-   * Refresh Token
+   * @refreshToken
+   * @summary Refresh Token
+   * @tag Auth
+   * @responseBody 200 - { "auth": {"type": "string", "token": "string"}}
+   * @responseBody 401 - {"errors": [{"message": "Unable to refresh token, please try again later."}]}
+   * @requestBody {"refreshToken": "string"}
    */
   public async refreshToken({ auth, response, request }: HttpContextContract): Promise<void> {
     try {
@@ -403,7 +408,6 @@ export default class AuthController {
     }
   }
 
-  // Add this method to your AuthController
   // public async testJwt({ request, response }: HttpContextContract): Promise<void> {
   //   try {
   //     const { email } = request.only(['email'])

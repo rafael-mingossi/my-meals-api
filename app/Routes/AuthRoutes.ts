@@ -8,8 +8,8 @@ Route.group(() => {
   Route.post('/register', 'AuthController.register')
   Route.post('/forgot-password', 'AuthController.forgotPassword')
   Route.get('/reset-password/:tempToken/:email', 'AuthController.resetPassword')
-  Route.post('/check-username', 'AuthController.isUsernameAvailable')
-  Route.post('/check-email', 'AuthController.isEmailAvailable')
+  Route.get('/check-username', 'AuthController.isUsernameAvailable')
+  Route.get('/check-email', 'AuthController.isEmailAvailable')
   Route.post('/refresh-token', 'AuthController.refreshToken')
 
   // Protected routes (auth required)
