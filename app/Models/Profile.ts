@@ -50,7 +50,7 @@ export default class Profile extends BaseModel {
   public fat_goal: number
 
   @column()
-  public notification_token: string
+  public notification_token: string | null
 
   @column()
   public temp_token: string | null
@@ -64,12 +64,17 @@ export default class Profile extends BaseModel {
   @column.dateTime()
   public temp_token_create_at: DateTime | null
 
-  // Add created_at column with autoCreate
   @column.dateTime({ autoCreate: true })
   public created_at: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updated_at: DateTime
+
+  @column()
+  public is_deleted: boolean
+
+  @column.dateTime()
+  public deleted_at: DateTime | null
 
   @hasMany(() => JwtToken, {
     foreignKey: 'userId',
