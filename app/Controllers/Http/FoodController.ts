@@ -1,26 +1,37 @@
+import 'App/Shared/Container/FoodContainer'
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import Food from 'App/Models/Food'
 import { StoreFoodSchema, UpdateFoodSchema } from 'App/Validators/FoodValidator'
-import { IFood } from 'App/Interfaces/IFood'
-import FoodsRepository from "App/Repositories/FoodsRepository";
+import FoodServices from 'App/Services/FoodServices'
+import { container } from 'tsyringe'
 
 export default class FoodController {
+  private foodServices: FoodServices
+
+  constructor() {
+    this.foodServices = container.resolve(FoodServices)
+  }
+
   /**
    * Get all foods for the authenticated user
-   * Excludes archived foods by default
    */
-  public async index({ auth, request, response }: HttpContextContract) {
+  public async index({ request, auth, response }: HttpContextContract) {
     try {
-      const { includeArchived = false, categoryId } = request.qs()
+      const userId = auth.user?.id!
 
-      const foodsRepository = new FoodsRepository()
-      const foods = await foodsRepository.getUserFoods(auth.user!.id, {
-        includeArchived: includeArchived,
-        categoryId: categoryId
-      })
+      const includeArchived = request.input('include_archived', false)
+      const categoryId = request.input('category_id')
+
+      const foods = await this.foodServices.getUserFoods(
+        userId,
+        includeArchived,
+        categoryId
+      )
 
       return response.json(foods)
     } catch (error) {
+      if (error.name === 'UnauthorizedException') {
+        return response.status(401).json({ message: error.message })
+      }
       return response.status(500).json({
         message: 'Failed to fetch foods',
         error: error.message
@@ -29,23 +40,21 @@ export default class FoodController {
   }
 
   /**
-   * Get a specific food by ID
+   * Get a specific food
    */
   public async show({ params, auth, response }: HttpContextContract) {
     try {
-      const food = await Food.query()
-        .where('id', params.id)
-        .where('user_id', auth.user?.id as string)
-        .first()
+      const userId = auth.user?.id!
 
-      if (!food) {
-        return response.status(404).json({
-          message: 'Food not found'
-        })
-      }
-
+      const food = await this.foodServices.getFood(params.id, userId)
       return response.json(food)
     } catch (error) {
+      if (error.name === 'NotFoundException') {
+        return response.status(404).json({ message: error.message })
+      }
+      if (error.name === 'UnauthorizedException') {
+        return response.status(401).json({ message: error.message })
+      }
       return response.status(500).json({
         message: 'Failed to fetch food',
         error: error.message
@@ -58,17 +67,19 @@ export default class FoodController {
    */
   public async store({ request, auth, response }: HttpContextContract) {
     try {
-      const foodDto: IFood.DTOs.Store = await request.validate({ schema: StoreFoodSchema })
+      const userId = auth.user?.id!
 
-      const foodsRepository = new FoodsRepository()
-      const food = await foodsRepository.store(foodDto, auth.user!.id)
+      const foodData = await request.validate({ schema: StoreFoodSchema })
+      const food = await this.foodServices.store(foodData, userId)
 
       return response.status(201).json(food)
     } catch (error) {
-      if (error.messages) {
+      if (error.name === 'ValidationException') {
         return response.status(422).json(error.messages)
       }
-
+      if (error.name === 'UnauthorizedException') {
+        return response.status(401).json({ message: error.message })
+      }
       return response.status(500).json({
         message: 'Failed to create food',
         error: error.message
@@ -77,35 +88,26 @@ export default class FoodController {
   }
 
   /**
-   * Update an existing food
+   * Update a food
    */
   public async update({ params, request, auth, response }: HttpContextContract) {
     try {
-      // Find the food
-      const food = await Food.query()
-        .where('id', params.id)
-        .where('user_id', auth.user?.id as string)
-        .first()
+      const userId = auth.user?.id!
 
-      if (!food) {
-        return response.status(404).json({
-          message: 'Food not found'
-        })
-      }
-
-      // Validate request using the schema and get typed DTO
-      const foodDto: IFood.DTOs.Update = await request.validate({ schema: UpdateFoodSchema })
-
-      // Update food with new values
-      food.merge(foodDto)
-      await food.save()
+      const foodData = await request.validate({ schema: UpdateFoodSchema })
+      const food = await this.foodServices.update(params.id, userId, foodData)
 
       return response.json(food)
     } catch (error) {
-      if (error.messages) {
+      if (error.name === 'NotFoundException') {
+        return response.status(404).json({ message: error.message })
+      }
+      if (error.name === 'ValidationException') {
         return response.status(422).json(error.messages)
       }
-
+      if (error.name === 'UnauthorizedException') {
+        return response.status(401).json({ message: error.message })
+      }
       return response.status(500).json({
         message: 'Failed to update food',
         error: error.message
@@ -114,31 +116,28 @@ export default class FoodController {
   }
 
   /**
-   * Archive a food (soft delete)
+   * Archive a food
    */
   public async archive({ params, auth, response }: HttpContextContract) {
     try {
-      // Find the food
-      const food = await Food.query()
-        .where('id', params.id)
-        .where('user_id', auth.user?.id as string)
-        .first()
+      const userId = auth.user?.id!
 
-      if (!food) {
-        return response.status(404).json({
-          message: 'Food not found'
-        })
-      }
-
-      // Set is_archived to true
-      food.is_archived = true
-      await food.save()
+      const food = await this.foodServices.updateArchiveStatus(params.id, userId, true)
 
       return response.json({
         message: 'Food archived successfully',
         food
       })
     } catch (error) {
+      if (error.name === 'NotFoundException') {
+        return response.status(404).json({ message: error.message })
+      }
+      if (error.name === 'BadRequestException') {
+        return response.status(400).json({ message: error.message })
+      }
+      if (error.name === 'UnauthorizedException') {
+        return response.status(401).json({ message: error.message })
+      }
       return response.status(500).json({
         message: 'Failed to archive food',
         error: error.message
@@ -151,27 +150,24 @@ export default class FoodController {
    */
   public async restore({ params, auth, response }: HttpContextContract) {
     try {
-      // Find the food
-      const food = await Food.query()
-        .where('id', params.id)
-        .where('user_id', auth.user?.id as string)
-        .first()
+      const userId = auth.user?.id!
 
-      if (!food) {
-        return response.status(404).json({
-          message: 'Food not found'
-        })
-      }
-
-      // Set is_archived to false
-      food.is_archived = false
-      await food.save()
+      const food = await this.foodServices.updateArchiveStatus(params.id, userId, false)
 
       return response.json({
         message: 'Food restored successfully',
         food
       })
     } catch (error) {
+      if (error.name === 'NotFoundException') {
+        return response.status(404).json({ message: error.message })
+      }
+      if (error.name === 'BadRequestException') {
+        return response.status(400).json({ message: error.message })
+      }
+      if (error.name === 'UnauthorizedException') {
+        return response.status(401).json({ message: error.message })
+      }
       return response.status(500).json({
         message: 'Failed to restore food',
         error: error.message

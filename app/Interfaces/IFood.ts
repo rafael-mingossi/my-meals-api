@@ -1,4 +1,20 @@
+import BaseInterface from "App/Shared/Interfaces/BaseInterface";
+import Food from 'App/Models/Food'
+
 export namespace IFood {
+  export interface Repository extends BaseInterface<typeof Food>, Helpers {
+    getUserFoods(userId: string, options?: {
+      includeArchived?: boolean,
+      categoryId?: number
+    }): Promise<Food[]>
+
+    findById(id: number, userId: string): Promise<Food | null>
+
+    updateArchiveStatus(food: Food, isArchived: boolean): Promise<Food>
+  }
+
+  export interface Helpers { }
+
   export namespace DTOs {
     export interface Store {
       label: string

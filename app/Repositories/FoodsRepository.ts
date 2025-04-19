@@ -1,37 +1,13 @@
+import BaseRepository from 'App/Shared/Repositories/BaseRepository'
 import Food from 'App/Models/Food'
 import { IFood } from 'App/Interfaces/IFood'
 
-export default class FoodsRepository {
-  /**
-   * Store a new food
-   */
-  public async store(data: IFood.DTOs.Store, userId: string): Promise<Food> {
-    const food = new Food()
-    food.user_id = userId
-    food.label = data.label
-    food.category_id = data.category_id
-    food.protein = data.protein
-    food.carbs = data.carbs
-    food.fat = data.fat
-    food.calories = data.calories
-    food.fibre = data.fibre || null
-    food.sodium = data.sodium || null
-    food.serv_size = data.serv_size
-    food.serv_unit = data.serv_unit
-    food.food_img = data.food_img || null
-    food.is_archived = false
-
-    await food.save()
-    return food
-  }
-
-  /**
-   * Update an existing food
-   */
-  public async update(food: Food, data: IFood.DTOs.Update): Promise<Food> {
-    food.merge(data)
-    await food.save()
-    return food
+export default class FoodsRepository
+  extends BaseRepository<typeof Food>
+  implements IFood.Repository
+{
+  constructor() {
+    super(Food)
   }
 
   /**
