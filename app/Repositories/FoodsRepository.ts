@@ -49,4 +49,8 @@ export default class FoodsRepository
     await food.save()
     return food
   }
+
+  public async getFoodsByIds(foodIds:number[]): Promise<Food[] | null> {
+    return Food.query().whereIn('id', foodIds)
+  }
 }

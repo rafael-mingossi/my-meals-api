@@ -24,6 +24,9 @@ Route.group(() => {
 
     // Restore archived food
     Route.put('/:id/restore', 'FoodController.restore')
+
+    // Get list of foods
+    Route.post('/byIds', 'FoodController.foodsByIds')
   })
     .prefix('/foods')
     .middleware('auth:jwt')

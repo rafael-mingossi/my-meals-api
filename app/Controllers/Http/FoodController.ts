@@ -174,4 +174,31 @@ export default class FoodController {
       })
     }
   }
+
+  public async foodsByIds({ request, response }: HttpContextContract) {
+    try {
+      const { foodIds } = request.body()
+
+      // Validate the input
+      if (!Array.isArray(foodIds) || foodIds.length === 0) {
+        return response.status(400).json({
+          message: 'Invalid request. foodIds must be a non-empty array of numbers'
+        })
+      }
+
+      const foods = await this.foodServices.getFoodsByIds(foodIds)
+      return response.json(foods)
+    } catch (error) {
+      if (error.name === 'NotFoundException') {
+        return response.status(404).json({ message: error.message })
+      }
+      if (error.name === 'UnauthorizedException') {
+        return response.status(401).json({ message: error.message })
+      }
+      return response.status(500).json({
+        message: 'Failed to fetch foods',
+        error: error.message
+      })
+    }
+  }
 }

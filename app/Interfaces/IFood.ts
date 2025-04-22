@@ -11,6 +11,8 @@ export namespace IFood {
     findById(id: number, userId: string): Promise<Food | null>
 
     updateArchiveStatus(food: Food, isArchived: boolean): Promise<Food>
+
+    getFoodsByIds(foodIds: number[]): Promise<Food[] | null>
   }
 
   export interface Helpers { }

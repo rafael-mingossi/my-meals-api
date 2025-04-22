@@ -37,6 +37,7 @@ export const EditUserSchema = schema.create({
     rules.email(),
     rules.unique({ table: 'profiles', column: 'email', whereNot: { is_deleted: true } }),
   ]),
+  // dob: schema.string.optional({ escape: true, trim: true }),
 })
 
 export const LoginSchema = schema.create({

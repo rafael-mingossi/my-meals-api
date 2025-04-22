@@ -32,6 +32,7 @@ export namespace IUser {
       protein_goal?: number
       carbs_goal?: number
       fat_goal?: number
+      // dob?: string
     }
 
     export interface ForgotPassword {

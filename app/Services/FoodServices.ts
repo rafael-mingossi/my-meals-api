@@ -79,4 +79,13 @@ export default class FoodServices {
 
     return this.foodsRepository.updateArchiveStatus(food, isArchived)
   }
+
+  /**
+   * Get list of Foods by IDs
+   */
+  public async getFoodsByIds(foodIds:number[]): Promise<Food[] | null> {
+    const foods = await this.foodsRepository.getFoodsByIds(foodIds)
+
+    return foods
+  }
 }
