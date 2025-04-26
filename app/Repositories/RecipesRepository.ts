@@ -4,8 +4,15 @@ import Food from 'App/Models/Food'
 import { IRecipe } from 'App/Interfaces/IRecipe'
 import Database from '@ioc:Adonis/Lucid/Database'
 import { RecipeUtils } from 'App/Utils/RecipeUtils'
+import BaseRepository from "App/Shared/Repositories/BaseRepository";
 
-export default class RecipesRepository {
+export default class RecipesRepository
+  extends BaseRepository<typeof Recipe>
+  implements IRecipe.Repository
+{
+  constructor() {
+    super(Recipe)
+  }
   /**
    * Get user's recipes with optional filtering
    */
@@ -41,7 +48,7 @@ export default class RecipesRepository {
   /**
    * Store a new recipe with items
    */
-  public async store(data: IRecipe.DTOs.Store, userId: string): Promise<Recipe> {
+  public async storeRecipe(data: IRecipe.DTOs.Store, userId: string): Promise<Recipe> {
     // Use transaction to ensure all operations succeed or fail together
     return Database.transaction(async (trx) => {
       // First, fetch all foods to calculate nutrition totals
@@ -166,5 +173,13 @@ export default class RecipesRepository {
     recipe.is_archived = isArchived
     await recipe.save()
     return recipe
+  }
+
+  /**
+   * Get a list of Recipes in a Meal
+   * @param recipeIds - array of Ids
+   */
+  public async getRecipesByIds(recipeIds:number[]): Promise<Recipe[] | null> {
+    return Recipe.query().whereIn('id', recipeIds)
   }
 }

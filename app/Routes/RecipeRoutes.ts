@@ -20,6 +20,9 @@ Route.group(() => {
 
     // Restore archived recipe
     Route.put('/:id/restore', 'RecipeController.restore')
+
+    // Get list of recipes by Ids
+    Route.post('byIds', 'RecipeController.recipesByIds')
   })
     .prefix('/recipes')
     .middleware('auth:jwt')
