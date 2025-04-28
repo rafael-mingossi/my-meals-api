@@ -1,7 +1,6 @@
 import Route from '@ioc:Adonis/Core/Route'
 
 Route.group(() => {
-  // Meal routes - protected (auth required)
   Route.group(() => {
     // Get all meals for the user
     Route.get('/', 'MealController.index')
@@ -20,6 +19,9 @@ Route.group(() => {
 
     // Delete meal
     Route.delete('/:id', 'MealController.destroy')
+
+    // Get meals for a specific date
+    Route.get('/date/:date', 'MealController.getByDate')
   })
     .prefix('/meals')
     .middleware('auth:jwt')

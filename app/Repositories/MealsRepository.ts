@@ -1,3 +1,4 @@
+import BaseRepository from 'App/Shared/Repositories/BaseRepository'
 import Meal from 'App/Models/Meal'
 import MealItem from 'App/Models/MealItem'
 import Food from 'App/Models/Food'
@@ -7,7 +8,14 @@ import Database from '@ioc:Adonis/Lucid/Database'
 import { MealUtils } from 'App/Utils/MealUtils'
 import { DateTime } from 'luxon'
 
-export default class MealsRepository {
+export default class MealsRepository
+  extends BaseRepository<typeof Meal>
+  implements IMeal.Repository
+{
+  constructor() {
+    super(Meal)
+  }
+
   /**
    * Get user's meals for a specific date or date range
    */
@@ -73,7 +81,7 @@ export default class MealsRepository {
   /**
    * Store a new meal with items
    */
-  public async store(data: IMeal.DTOs.Store, userId: string): Promise<Meal> {
+  public async storeMeal(data: IMeal.DTOs.Store, userId: string): Promise<Meal> {
     return Database.transaction(async (trx) => {
       // Create meal first
       const meal = new Meal()
