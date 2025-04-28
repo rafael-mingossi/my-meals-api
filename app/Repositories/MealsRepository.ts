@@ -287,4 +287,121 @@ export default class MealsRepository
       await meal.delete()
     })
   }
+
+  /**
+   * Delete all meals of a specific type on a specific date
+   */
+  public async deleteMealsByTypeAndDate(
+    userId: string,
+    date: string | DateTime,
+    mealType: string
+  ): Promise<void> {
+    return Database.transaction(async (trx) => {
+      // Format date to string if it's a DateTime object
+      const formattedDate = date instanceof DateTime
+        ? date.toFormat('yyyy-MM-dd')
+        : date;
+
+      // Find meals matching criteria
+      const meals = await Meal.query({ client: trx })
+        .where('user_id', userId)
+        .where('date_added', formattedDate)
+        .where('meal_type', mealType);
+
+      if (meals.length === 0) {
+        return;
+      }
+
+      const mealIds = meals.map(meal => meal.id);
+
+      // Delete all related meal items first (foreign key constraint)
+      await MealItem.query({ client: trx })
+        .whereIn('meal_id', mealIds)
+        .delete();
+
+      // Then delete the meals
+      await Meal.query({ client: trx })
+        .whereIn('id', mealIds)
+        .delete();
+    });
+  }
+
+  /**
+   * Delete a specific meal item and update meal totals or delete meal if it's the last item
+   */
+  public async deleteMealItemById(
+    id: number,
+    userId: string
+  ): Promise<{ userId: string, dateAdded: DateTime }> {
+    return Database.transaction(async (trx) => {
+      // Find the meal item and ensure it belongs to the user
+      const mealItem = await MealItem.query({ client: trx })
+        .where('id', id)
+        .firstOrFail();
+
+      // Load the parent meal to check ownership
+      const meal = await Meal.query({ client: trx })
+        .where('id', mealItem.meal_id)
+        .firstOrFail();
+
+      const mealId = mealItem.meal_id;
+      const dateAdded = meal.date_added;
+
+      // Delete the meal item
+      await mealItem.useTransaction(trx).delete();
+
+      // Get remaining meal items for this meal
+      const remainingItems = await MealItem.query({ client: trx })
+        .where('meal_id', mealId)
+        .preload('food')
+        .preload('recipe');
+
+      // If there are no remaining items, delete the meal
+      if (remainingItems.length === 0) {
+        await meal.useTransaction(trx).delete();
+      } else {
+        // Calculate new nutrition totals
+        const foods = remainingItems
+          .filter(item => item.food)
+          .map(item => item.food);
+
+        const recipes = remainingItems
+          .filter(item => item.recipe)
+          .map(item => item.recipe);
+
+        // Convert to MealItem DTO format for the utility function
+        const mealItemsDTO = remainingItems.map(item => {
+          return {
+            id: item.id,
+            food_item: item.food_id ? {
+              food_id: item.food_id,
+              quantity: item.food_quantity || 0
+            } : undefined,
+            recipe_item: item.recipe_id ? {
+              recipe_id: item.recipe_id,
+              quantity: item.recipe_quantity || 0
+            } : undefined
+          };
+        });
+
+        const nutritionTotals = MealUtils.calculateNutritionTotals(
+          foods,
+          recipes,
+          mealItemsDTO
+        );
+
+        // Update meal with new totals
+        meal.t_calories = nutritionTotals.calories;
+        meal.t_carbs = nutritionTotals.carbs;
+        meal.t_fat = nutritionTotals.fat;
+        meal.t_protein = nutritionTotals.protein;
+        meal.t_fibre = nutritionTotals.fibre;
+        meal.t_sodium = nutritionTotals.sodium;
+
+        await meal.useTransaction(trx).save();
+      }
+
+      return { userId, dateAdded };
+    });
+  }
 }

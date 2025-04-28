@@ -137,4 +137,25 @@ export default class MealServices {
   public async getUserMealsByDate(userId: string, date: string | DateTime): Promise<Meal[]> {
     return this.mealsRepository.getUserMeals(userId, { date })
   }
+
+  /**
+   * Delete all meals of a specific type on a specific date
+   */
+  public async deleteMealsByTypeAndDate(
+    userId: string,
+    date: string | DateTime,
+    mealType: string
+  ): Promise<void> {
+    return this.mealsRepository.deleteMealsByTypeAndDate(userId, date, mealType);
+  }
+
+  /**
+   * Delete a specific meal item
+   */
+  public async deleteMealItemById(
+    id: number,
+    userId: string
+  ): Promise<{ userId: string, dateAdded: DateTime }> {
+    return this.mealsRepository.deleteMealItemById(id, userId);
+  }
 }

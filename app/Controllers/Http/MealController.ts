@@ -215,4 +215,62 @@ export default class MealController {
       })
     }
   }
+
+  /**
+   * Delete all meals of a specific type on a specific date
+   */
+  public async destroyByTypeAndDate({ request, auth, response }: HttpContextContract) {
+    try {
+      const userId = auth.user!.id;
+      const { date, mealType } = request.qs();
+
+      if (!date || !mealType) {
+        return response.status(400).json({
+          message: 'Date and meal type are required'
+        });
+      }
+
+      await this.mealServices.deleteMealsByTypeAndDate(userId, date, mealType);
+
+      return response.json({
+        message: 'Meals deleted successfully'
+      });
+    } catch (error) {
+      if (error.name === 'UnauthorizedException') {
+        return response.status(401).json({ message: error.message });
+      }
+      return response.status(500).json({
+        message: 'Failed to delete meals',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Delete a specific meal item
+   */
+  public async destroyMealItem({ params, auth, response }: HttpContextContract) {
+    try {
+      const userId = auth.user!.id;
+
+      const result = await this.mealServices.deleteMealItemById(params.id, userId);
+
+      return response.json({
+        message: 'Meal item deleted successfully',
+        userId: result.userId,
+        dateAdded: result.dateAdded.toFormat('yyyy-MM-dd')
+      });
+    } catch (error) {
+      if (error.name === 'NotFoundException') {
+        return response.status(404).json({ message: error.message });
+      }
+      if (error.name === 'UnauthorizedException') {
+        return response.status(401).json({ message: error.message });
+      }
+      return response.status(500).json({
+        message: 'Failed to delete meal item',
+        error: error.message
+      });
+    }
+  }
 }

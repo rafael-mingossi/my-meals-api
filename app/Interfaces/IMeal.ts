@@ -18,6 +18,10 @@ export namespace IMeal {
     update(meal: Meal, data: IMeal.DTOs.Update): Promise<Meal>
 
     delete(meal: Meal): Promise<void>
+
+    deleteMealsByTypeAndDate(userId: string, date: string | DateTime, mealType: string): Promise<void>;
+
+    deleteMealItemById(id: number, userId: string): Promise<{ userId: string, dateAdded: DateTime }>;
   }
 
   export interface Helpers { }

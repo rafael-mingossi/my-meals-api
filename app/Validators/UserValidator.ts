@@ -14,7 +14,7 @@ export const StoreUserSchema = schema.create({
     rules.requiredIfNotExists('email'),
     rules.unique({ table: 'profiles', column: 'email', whereNot: { is_deleted: true } }),
   ]),
-  password: schema.string({ escape: true, trim: true }, [rules.minLength(4)]),
+  password: schema.string({ escape: true, trim: true }, [rules.minLength(6)]),
 })
 
 export const EditUserSchema = schema.create({
@@ -52,7 +52,7 @@ export const ForgotPasswordSchema = schema.create({
 
 export const EditPasswordSchema = schema.create({
   currentPassword: schema.string({ trim: true }),
-  newPassword: schema.string({ trim: true }, [rules.minLength(8)]),
+  newPassword: schema.string({ trim: true }, [rules.minLength(6)]),
 })
 
 export const UpdateNotificationTokenSchema = schema.create({
